@@ -1,0 +1,48 @@
+P = There are a zero to four byte prefix that 
+effect the operation of the instruction
+
+O = There is a one or two byte instruction opcode
+if 0x0F is the prefix then there it is a two bye opcode
+
+I = There is a optional scaled index buyte that scales 
+effects the memory addressing mode
+
+The displacement is a 0-4 byte memory address displacement
+for the instruction
+
+
+x86 ADD instruction OpCode:
+
+s: this is the size of the data we are adding
+when s = 0 then the operands are 8 bit registers 
+and memory locations. when s = 1 the operands are 
+either 16bits or 32bits. To specify 16bit operands
+on windows and linux you must insert a operand size
+prefix byte in front of the byte
+
+d: specifies the direction of the data transfer. when
+d = 0 then the destination of the operand is a memory 
+location (add [ebx] al) when d = 1 then the destination
+of the operand is a register (add al, [ebx]) 
+
+add instruction opcode [000000ds]
+
+
+Encoding x86 operands, MOD-REG-R/m:
+
+7     6 5   4   3 2   1   0
+[ MOD ] [  REG  ] [  R\M  ]
+The mod field specifies x86 addressing mode.
+
+=====================================================================
+[ MOD ] [                       Meaning                             ]
+  00    Register indirect addressing mode or SIB with no displacement 
+        (only when r\m = 100) or displacement only adressing mode 
+        (when R.M = 101)
+----------------------------------------------------------
+  01    One-byte signed displacement follows addressing mode byte(s)
+----------------------------------------------------------
+  10    Four-byte signed displacement follow addressing mode bytes(s)
+  11
+
+
