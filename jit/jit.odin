@@ -4,6 +4,7 @@ import vmem "core:mem/virtual"
 import "core:mem"
 import "core:fmt"
 import "base:builtin"
+import "core:strings"
 
 Fn_I64_I64 :: #type proc(x: i64) -> i64
 
@@ -15,19 +16,60 @@ encode_add_eax :: proc(iv: i32) -> (instr: [5]u8) {
   return instr
 }
 
+/**
+This is a code builder that you use to write raw x64 to
+
+Procedures that use this data structure produce instructions
+will have the prefix
+*/
+Builder :: struct {
+  buf: [dynamic]byte,
+}
+
+
+builder_init :: proc{
+  builder_init_none,
+  builder_init_len,
+  builder_init_len_cap,
+}
+
+builder_init_none :: proc(b: ^Builder, allocator:=context.allocator, loc := #caller_location) -> (res: ^Builder, err: mem.Allocator_Error) {
+  b.buf = make([dynamic]byte, allocator, loc) or_return
+  return b, nil
+}
+
+builder_init_len :: proc(b: ^Builder, len: uint, allocator:=context.allocator, loc := #caller_location) -> (res: ^Builder, err: mem.Allocator_Error) {
+  b.buf = make([dynamic]byte, len, allocator, loc) or_return
+  return b, nil
+}
+
+builder_init_len_cap :: proc(b: ^Builder, len, cap: uint, allocator:=context.allocator, loc := #caller_location) -> (res: ^Builder, err: mem.Allocator_Error) {
+  b.buf = make([dynamic]byte, len, cap, allocator, loc) or_return
+  return b, nil
+}
+
+
+
 main :: proc() {
   code_arena := &vmem.Arena{} // Do not use
   exe_err := vmem.arena_init_static(code_arena) 
-  codebuf := make([dynamic]u8, 0, vmem.DEFAULT_ARENA_STATIC_COMMIT_SIZE)
+  b, err := builder_init(&Builder{}, 0, vmem.DEFAULT_ARENA_STATIC_COMMIT_SIZE) 
+
+  encode_add(b, .eax, .ecx)
+  encode_return(b)
+
+
+
+  fmt.println("")
+  fmt.printfln("add eax, ecx: %X", b.buf[:])
   
-  identity_fn_data := [?]u8 { 0x48, 0x89, 0xC8, 0x05, 0x5f, 0x01, 0x00, 0x00, X64_RET} 
-  for byte in identity_fn_data do append(&codebuf, byte)
-  some_fn := transmute(Fn_I64_I64)(raw_data(codebuf[:]))
+  fn_main := transmute(Fn_I64_I64)(raw_data(b.buf))
 
-  vmem.protect(raw_data(codebuf[:]), len(codebuf), {.Execute})
+  vmem.protect(raw_data(b.buf[:]), len(b.buf), {.Execute})
 
-  fmt.println("Did this work", codebuf, some_fn(69))
 
-  
-
+  success := fn_main(32)
+  fmt.println("Our program returned:", success)
 }
+
+

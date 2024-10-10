@@ -35,14 +35,81 @@ Encoding x86 operands, MOD-REG-R/m:
 The mod field specifies x86 addressing mode.
 
 =====================================================================
-[ MOD ] [                       Meaning                             ]
+ MOD   Meaning
+=====================================================================
   00    Register indirect addressing mode or SIB with no displacement 
         (only when r\m = 100) or displacement only adressing mode 
         (when R.M = 101)
-----------------------------------------------------------
+---------------------------------------------------------------------
   01    One-byte signed displacement follows addressing mode byte(s)
-----------------------------------------------------------
+---------------------------------------------------------------------
   10    Four-byte signed displacement follow addressing mode bytes(s)
-  11
+---------------------------------------------------------------------
+  11    register addresing mode
+=====================================================================
+
+The R\M field specifies either
+  1. the second opeand in a two-operand instruction, or
+  2. the only operand in a single operand instruct like NOT or NEG
+The d bit in the opcode determines which operand is the source and which 
+is the destination.
+  d=0 Mod R/M <- REG, REG is the source.
+  d=1 REG <- MOD R/M, REG is the destination.
+
+Register_Index :: enum u8 {
+  AX = 0b000, // al, ax, eax, rax
+  CX = 0b001,
+  DX = 0b010,
+  BX = 0b011,
+  SP = 0b100,
+  BP = 0b101,
+  SI = 0b110,
+  DI = 0b111,
+}
 
 
+Many opcodes have the d (direction) field in thir opcode this can be either the source 
+or the destination.
+
+1. if d=0 then d is the source i.e. MOD R/M <- REG
+2. if d=1 then d is the destination i.e REG <- R/M 
+
+Mod r/m byte and addressing modes with 1 byte dispacement fall in the range -128 - +127 have a only require 
+a single byte after the opcode
+
+The size bit in the opcode specifies 8 or 32 bit register size to select a 16 bit register requires a prefix byte
+
+MOD R/M Addressing Mode
+=== === ================================
+ 00 000 [ eax ]
+ 01 000 [ eax + disp8 ]               (1)
+ 10 000 [ eax + disp32 ]
+ 11 000 register  ( al / ax / eax )   (2)
+ 00 001 [ ecx ]
+ 01 001 [ ecx + disp8 ]
+ 10 001 [ ecx + disp32 ]
+ 11 001 register  ( cl / cx / ecx )
+ 00 010 [ edx ]
+ 01 010 [ edx + disp8 ]
+ 10 010 [ edx + disp32 ]
+ 11 010 register  ( dl / dx / edx )
+ 00 011 [ ebx ]
+ 01 011 [ ebx + disp8 ]
+ 10 011 [ ebx + disp32 ]
+ 11 011 register  ( bl / bx / ebx )
+ 00 100 SIB  Mode                     (3)
+ 01 100 SIB  +  disp8  Mode
+ 10 100 SIB  +  disp32  Mode
+ 11 100 register  ( ah / sp / esp )
+ 00 101 32-bit Displacement-Only Mode (4)
+ 01 101 [ ebp + disp8 ]
+ 10 101 [ ebp + disp32 ]
+ 11 101 register  ( ch / bp / ebp )
+ 00 110 [ esi ]
+ 01 110 [ esi + disp8 ]
+ 10 110 [ esi + disp32 ]
+ 11 110 register  ( dh / si / esi )
+ 00 111 [ edi ]
+ 01 111 [ edi + disp8 ]
+ 10 111 [ edi + disp32 ]
+ 11 111 register  ( bh / di / edi )
