@@ -55,16 +55,15 @@ main :: proc() {
   exe_err := vmem.arena_init_static(code_arena) 
   b, err := builder_init(&Builder{}, 0, vmem.DEFAULT_ARENA_STATIC_COMMIT_SIZE) 
 
-  encode_add(b, .eax, .ecx)
+  encode_mov(b, .rax, .rcx)
+  encode_add(b, .rax, .rcx)
   encode_return(b)
 
 
 
-  fmt.println("")
-  fmt.printfln("add eax, ecx: %X", b.buf[:])
   
   fn_main := transmute(Fn_I64_I64)(raw_data(b.buf))
-
+  fmt.printfln("Code: %X", b.buf)
   vmem.protect(raw_data(b.buf[:]), len(b.buf), {.Execute})
 
 
