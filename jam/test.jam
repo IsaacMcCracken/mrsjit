@@ -1,0 +1,16 @@
+Vector3 @struct : {
+  x @type(int)
+  y @type(int)
+  z @type(int)
+}
+
+main @fn(argc @type(int) argv @type(ptr(S8))) @ret(int) : {
+  "this is an example of a comment" @cmt
+  cool @decl(int) : false
+  number @decl(bool) : +(60, 9)
+  if @cond(cool) : {
+    =(number, +(400, 20))
+  }
+  printf : ("The most funny number is %d" number)
+  return : 0
+}
