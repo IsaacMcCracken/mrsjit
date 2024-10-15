@@ -27,6 +27,43 @@ Parser :: struct {
   nodes: [dynamic]Node,
 }
 
+Node_Iterator :: struct {
+  curr, next: ^Node,
+}
+
+tag_iterator :: proc(p: ^Parser, node: Index) -> (iter: Node_Iterator) {
+  par := &p.nodes[node]
+  if par.last_tag == 0 {
+    assert(par.first_tag == 0)
+    return  
+  }
+
+  iter.curr = &p.nodes[par.first_tag]
+
+  if iter.curr.next != 0 {
+    iter.next = &p.nodes[iter.curr.next]
+  }
+
+  return iter
+}
+
+iterate_forward :: proc(p: ^Parser, iter: ^Node_Iterator) -> (node: ^Node, ok: bool) {
+  res := iter.curr
+
+  iter.curr = iter.next 
+
+  if iter.curr != nil {
+    
+  }
+
+  ok = iter.next != nil
+
+
+  return  
+}
+
+
+
 @private get_current_node :: proc(p: ^Parser) -> (node: ^Node, ok: bool){
   N := len(p.nodes)
   if N < 1 do return
@@ -108,6 +145,8 @@ push_tag :: proc(p: ^Parser, parent, tag: Index) {
 
 parse_tag :: proc(p: ^Parser) -> Index {
   token := p.tokens[p.curr]
+  assert(token.kind == .Tag)
+
   
   append(&p.nodes, Node{token = token})
   node, ok := get_current_node(p)
@@ -118,13 +157,17 @@ parse_tag :: proc(p: ^Parser) -> Index {
   if !ok do return index
 
   if token.kind == .Left_Paren {
-    _, ok = token_increment(p)
+    token, ok = token_increment(p)
     assert(ok)
 
-    parse_node(p)
+    for token = p.tokens[p.curr]; token.kind == .Identifier && p.curr < len(p.tokens); token = p.tokens[p.curr]{
+      push_child(p, index, parse_node(p))
+    }
 
     token = p.tokens[p.curr]
     assert(token.kind == .Right_Paren)
+
+    token, ok = token_increment(p)
   } 
   
   return index
@@ -132,6 +175,8 @@ parse_tag :: proc(p: ^Parser) -> Index {
 
 parse_node :: proc(p: ^Parser) -> Index {
   token := p.tokens[p.curr]
+  fmt.assertf(token.kind == .Identifier, "Expected %v got %v", Token_Kind.Identifier, token.kind)
+  assert(token.kind == .Identifier)
   
   append(&p.nodes, Node{token = token})
   node, ok := get_current_node(p)
@@ -144,7 +189,10 @@ parse_node :: proc(p: ^Parser) -> Index {
 
   if !ok do return index
 
-  for token := p.tokens[p.curr]; token.kind == .Tag && p.curr < len(p.tokens); {
+  // TODO:(Isaac) make a token iterator
+  for token = p.tokens[p.curr]; 
+      token.kind == .Tag && p.curr < len(p.tokens);
+      token = p.tokens[p.curr] {
     push_tag(p, index, parse_tag(p))
   }
 
@@ -156,15 +204,23 @@ parse_node :: proc(p: ^Parser) -> Index {
     #partial switch token.kind {
       case .Left_Brace:
         token, ok = token_increment(p)
-        for token = p.tokens[p.curr]; token.kind == .Identifier && p.curr < len(p.tokens); {
+
+        for token = p.tokens[p.curr];
+          token.kind == .Identifier && p.curr < len(p.tokens);
+          token = p.tokens[p.curr] {
           push_child(p, index, parse_node(p))
         }
+
         assert(token.kind == .Right_Brace) 
       case .Left_Paren:
         token, ok = token_increment(p)
-        for token = p.tokens[p.curr]; token.kind == .Identifier && p.curr < len(p.tokens); {
+
+        for token = p.tokens[p.curr];
+          token.kind == .Identifier && p.curr < len(p.tokens);
+          token = p.tokens[p.curr] {
           push_child(p, index, parse_node(p))
         }
+
         assert(token.kind == .Right_Paren)
       case .Identifier:
         push_child(p, index, parse_node(p))
@@ -183,21 +239,44 @@ parse_node :: proc(p: ^Parser) -> Index {
 parse :: proc(p: ^Parser) {
   append(&p.nodes, Node{})
 
-  for token := p.tokens[p.curr]; token.kind == .Identifier && p.curr < len(p.tokens); {
+  for token := p.tokens[p.curr];
+    token.kind == .Identifier && p.curr < len(p.tokens);
+    token = p.tokens[p.curr] {
     push_child(p, 0, parse_node(p))
   }
+
 }
 
-write_tree :: proc(p: ^Parser) {
-  write_node :: proc(p: ^Parser, node: Index) {
+write_tree :: proc(b: ^strings.Builder, p: ^Parser) {
+  write_node :: proc(b: ^strings.Builder, p: ^Parser, node: Index, indent: int) {
+    cur := &p.nodes[node]
+    str := p.src[cur.token.start:cur.token.end]
+    for i in 0..<indent do strings.write_rune(b, ' ')
+    strings.write_bytes(b, str)
 
+
+    
+    if cur.last_child != 0 {
+      assert(cur.first_child != 0)
+      strings.write_string(b, ": {\n")
+      
+      write_node(b, p, cur.first_child, indent + 1)
+
+      for i in 0..<indent do strings.write_rune(b, ' ')
+      strings.write_string(b, "}\n")
+    }
   }
+
+  write_node(b, p, 0, 0)
 }
 
 main :: proc() {
-  src := "main @fn @ret(int) {return: 0}"
+  // src := "main @fn @ret(int) : {return: 0}"
+  // t, err := tokenizer_init(&Tokenizer{}, transmute([]u8)src)
 
+  src := #load("test.jam")
   t, err := tokenizer_init(&Tokenizer{}, transmute([]u8)src)
+
 
   scan(t)
 
@@ -209,6 +288,13 @@ main :: proc() {
 
   parse(p)
 
-  fmt.println(p)
+  b, err3 := strings.builder_init(&strings.Builder{})
+  write_tree(b, p)
+
+  tree := strings.to_string(b^)
+
+  fmt.println(p.nodes[1])
+
+  fmt.print(tree)
 
 }

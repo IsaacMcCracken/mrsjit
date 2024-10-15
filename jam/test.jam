@@ -4,13 +4,14 @@ Vector3 @struct : {
   z @type(int)
 }
 
-main @fn(argc @type(int) argv @type(ptr(S8))) @ret(int) : {
+main @fn(argc @type(int) argv @type(ptr(S8))) @ret(int): {
   "this is an example of a comment" @cmt
-  cool @decl(int) : false
-  number @decl(bool) : +(60, 9)
-  if @cond(cool) : {
-    =(number, +(400, 20))
+  vec @decl(Vector3): {1, 4, 6}
+  cool @decl(bool): false
+  number @decl(int): +:(60, 9)
+   if @cond(cool): {
+    =:(number, +:(400, 20)) // number = 400 + 20
   }
-  printf : ("The most funny number is %d" number)
-  return : 0
+  printf :("The most funny number is %d" number)
+  return :0
 }

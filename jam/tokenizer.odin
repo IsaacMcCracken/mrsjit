@@ -145,7 +145,7 @@ scan :: proc(t: ^Tokenizer) {
   }
 }
 
-test_tokenizer :: proc() {
+example_test :: proc() {
   src := #load("test.jam")
 
   t, err := tokenizer_init(&Tokenizer{}, src)
