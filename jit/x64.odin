@@ -3,14 +3,13 @@ package leaf_jit
 // import "core:fmt" // remove
 X64_RET :: 0xC3
 
+S_BIT :: 0b00000001
+D_BIT :: 0b00000010
 
 Operand_Kind :: enum u8 {
   Register = 1,
 }
 
-Operand :: struct {
-
-}
 
 Mod_Kind :: enum u8 {
   None      = 0b00,
@@ -18,6 +17,8 @@ Mod_Kind :: enum u8 {
   S32       = 0b10,
   Register  = 0b11,
 }
+
+Immediate :: int
 
 Register_Kind :: enum u8 {
   // lower 1-byte registers
@@ -58,6 +59,11 @@ Register_Kind :: enum u8 {
   rdi,
 }
 
+x64_Byte_Opcode :: enum u8 {
+  add = 0,
+  mov = 0x88
+}
+
 REX_PREFIX :: 0b0100
 Rex_Byte :: bit_field u8 {
   prefix: u8 | 4,
@@ -68,12 +74,10 @@ Rex_Byte :: bit_field u8 {
 }
 
 X64_Operand :: union {
-
+  Register_Kind,
+  Immediate,
 }
 
-X64_Instruction :: struct {
-  
-}
 
 
 
@@ -84,28 +88,19 @@ create_reg_rm_byte :: proc(mod: Mod_Kind, reg, r2: Register_Kind ) -> u8 {
 }
 
 
-encode_add :: proc(b: ^Builder, reg, r2: Register_Kind) {
-  S_BIT :: 0b00000001
-  D_BIT :: 0b00000010
-  opcode: u8 
-  switch reg {
-    case .al..=.bh:
-    case .ax..=.di:
-      opcode |= S_BIT
-    case .eax..=.edi: 
-      opcode |= S_BIT
-    case .rax..=.rdi:
-      opcode |= S_BIT
-      // TODO determine the REX prefix
+encode_add :: proc(b: ^Builder, reg, rm: X64_Operand) {
+  
+}
 
-      append(&b.buf, 0x48)
-    case:
-      panic("not implemented yet")
-  }
+encode_mov :: proc(b: ^Builder, op1, op2: X64_Operand) {
+  opcode, reg, rm: u8 = 0x88, 0, 0
+  
+  _, op1_is_immediate := op1.(Immediate)
+  assert(!op1_is_immediate, "First operand cannot be a Immediate")
 
-  operands := create_reg_rm_byte(.Register, reg, r2)
 
-  append(&b.buf, opcode, operands)
+  // should we encode the size bit
+
 }
 
 encode_return :: proc(b: ^Builder) {

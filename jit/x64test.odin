@@ -37,3 +37,18 @@ add_rax_rcx_ret :: proc(t: ^testing.T) {
 
   testing.expectf(t, ok, "add rax, rcx | ret (Expected %X. Got %X)", expected, b.buf[:])
 }
+
+@(test)
+mov_edx_ebx :: proc(t: ^testing.T) {
+  b, err := builder_init(&Builder{}) 
+  testing.expect(t, err == .None, "Are we failing here")
+  defer delete(b.buf)
+
+  expected := []u8{ 0x89, 0xDA } 
+
+  encode_mov(b, .rax, .rcx)
+
+  ok := mem.compare(b.buf[:], expected) == 0
+
+  testing.expectf(t, ok, "add rax, rcx | ret (Expected %X. Got %X)", expected, b.buf[:])
+}
