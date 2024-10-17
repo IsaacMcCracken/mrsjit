@@ -72,7 +72,8 @@ skip_whitespace :: proc(t: ^Tokenizer) {
 
 is_identifier_char :: proc(r: rune) -> bool {
   switch r {
-    case  'a'..='z', 'A'..='Z', '0'..='9', '_', '!', '#', '$', '%', '^', '&', '*', '/', '+', '-', '?':
+    case  'a'..='z', 'A'..='Z', '0'..='9', '_', '!', '#', '$', 
+    '%', '^', '&', '*', '/', '+', '-', '=', '?':
       return true
   }
 
@@ -95,8 +96,6 @@ scan_string :: proc(t: ^Tokenizer) {
   for t.curr < u32(len(t.src)) && t.src[t.curr] != '"' do t.curr += 1
   t.curr += 1
 }
-
-
 
 scan :: proc(t: ^Tokenizer) {
   n := u32(len(t.src))
@@ -131,7 +130,7 @@ scan :: proc(t: ^Tokenizer) {
         emit_token(t, .Semicolon)
 
       case  'a'..='z', 'A'..='Z', '0'..='9', '_', '!', '#', '$', 
-            '%', '^', '&', '*', '/', '+', '-', '?':
+            '%', '^', '&', '*', '/', '+', '-', '=', '?':
         scan_identifier(t)
         emit_token(t, .Identifier)
       case '"':
@@ -161,10 +160,26 @@ example_test :: proc() {
 print_tokens :: proc(t: ^Tokenizer) {
   fmt.println("Tokens {")
   for token in t.tokens {
-    fmt.println(' ', token.kind, "->", string(t.src[token.start:token.end]))
+    fmt.println(' ', token.kind, "-> `", string(t.src[token.start:token.end]), "`,")
   }
   fmt.println('}')
 
 }
 
 
+get_token_position :: proc(src: []byte, t: Token) -> (line, col: int) {
+  line = 1
+  for c, i in src {
+    col += 1
+
+    if c == '\n' {
+      line += 1
+      col = 0
+    }
+
+    if i >= int(t.start) do break
+  }
+
+
+  return line, col
+}
